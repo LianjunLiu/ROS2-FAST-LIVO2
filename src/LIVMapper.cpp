@@ -116,6 +116,22 @@ void LIVMapper::readParameters(rclcpp::Node::SharedPtr &node)
   this->node->declare_parameter<bool>("publish.pub_effect_point_en", false);
   this->node->declare_parameter<bool>("publish.dense_map_en", false);
 
+  // camera intrinsics: declared here so vikit's camera_loader (getRemoteParam)
+  // finds them locally without a separate parameter_blackboard node. Defaults
+  // match the gz-sim RealSense D455 (1280x800, no distortion).
+  this->node->declare_parameter<std::string>("cam_model", "Pinhole");
+  this->node->declare_parameter<int>("cam_width", 1280);
+  this->node->declare_parameter<int>("cam_height", 800);
+  this->node->declare_parameter<double>("scale", 1.0);
+  this->node->declare_parameter<double>("cam_fx", 674.4439);
+  this->node->declare_parameter<double>("cam_fy", 674.4439);
+  this->node->declare_parameter<double>("cam_cx", 640.0);
+  this->node->declare_parameter<double>("cam_cy", 400.0);
+  this->node->declare_parameter<double>("cam_d0", 0.0);
+  this->node->declare_parameter<double>("cam_d1", 0.0);
+  this->node->declare_parameter<double>("cam_d2", 0.0);
+  this->node->declare_parameter<double>("cam_d3", 0.0);
+
   // get parameter
   this->node->get_parameter("common.lid_topic", lid_topic);
   this->node->get_parameter("common.imu_topic", imu_topic);

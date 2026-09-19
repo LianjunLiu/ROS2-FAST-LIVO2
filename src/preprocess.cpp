@@ -85,6 +85,10 @@ void Preprocess::process(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &ms
     robosense_handler(msg);
     break;
 
+  case MID360S:
+    mid360_handler(msg);
+    break;
+
   default:
     printf("Error LiDAR Type: %d \n", lidar_type);
     break;
@@ -238,6 +242,38 @@ void Preprocess::l515_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPt
   cout << "pl size:: " << pl_orig.points.size() << endl;
   // pub_func(pl_surf, pub_full, msg->header.stamp);
   // pub_func(pl_surf, pub_corn, msg->header.stamp);
+}
+
+void Preprocess::mid360_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
+{
+  pl_surf.clear();
+  pl_corn.clear();
+  pl_full.clear();
+  pcl::PointCloud<pcl::PointXYZI> pl_orig;
+  pcl::fromROSMsg(*msg, pl_orig);
+  int plsize = pl_orig.size();
+  pl_corn.reserve(plsize);
+  pl_surf.reserve(plsize);
+
+  for (int i = 0; i < pl_orig.points.size(); i++)
+  {
+    if (i % point_filter_num != 0) continue;
+
+    double range = pl_orig.points[i].x * pl_orig.points[i].x + pl_orig.points[i].y * pl_orig.points[i].y + pl_orig.points[i].z * pl_orig.points[i].z;
+
+    if (range < blind * blind) continue;
+
+    PointType added_pt;
+    added_pt.x = pl_orig.points[i].x;
+    added_pt.y = pl_orig.points[i].y;
+    added_pt.z = pl_orig.points[i].z;
+    added_pt.intensity = pl_orig.points[i].intensity;
+    added_pt.normal_x = 0.0;
+    added_pt.normal_y = 0.0;
+    added_pt.normal_z = 0.0;
+    added_pt.curvature = 0.0;
+    pl_surf.points.push_back(added_pt);
+  }
 }
 
 void Preprocess::oust64_handler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)

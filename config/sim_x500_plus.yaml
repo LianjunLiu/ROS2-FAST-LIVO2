@@ -1,0 +1,100 @@
+/**:
+  ros__parameters:
+    common:
+      img_topic: "/realsensed455f/color/image_raw"
+      lid_topic: "/mid360s/points/points"
+      imu_topic: "/mid360s/imu"
+      img_en: 1
+      lidar_en: 1
+      ros_driver_bug_fix: false
+
+    extrin_calib:
+      # imu <-> lidar are co-located in mid360s_link -> identity
+      extrinsic_T: [0.0, 0.0, 0.0]
+      extrinsic_R: [1.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0]
+      # lidar -> camera: p_cam = Rcl * p_lidar + Pcl
+      # gz-sim lidar frame (+X fwd, +Y left, +Z up) -> vikit camera frame (+Z fwd, +X right, +Y down).
+      # This ~90deg convention rotation is REQUIRED: the gz-sim camera looks along +X, FAST-LIVO2
+      # assumes the camera looks along +Z (real datasets carry the same rotation in their Rcl).
+      # Then composed with the 5deg extra camera pitch (camera -15deg vs lidar -10deg).
+      Rcl: [0.0, -1.0, 0.0,
+            -0.087156, 0.0, -0.996195,
+            0.996195, 0.0, -0.087156]
+      # lidar origin expressed in the (vikit) camera frame
+      Pcl: [0.0, -0.04678, -0.18087]
+
+    time_offset:
+      imu_time_offset: 0.0
+      img_time_offset: 0.0
+      exposure_time_init: 0.0
+
+    preprocess:
+      point_filter_num: 2
+      filter_size_surf: 0.5
+      lidar_type: 8 # MID360S (sensor_msgs/PointCloud2: x/y/z/intensity/ring)
+      scan_line: 40
+      blind: 0.8
+
+    vio:
+      max_iterations: 5
+      outlier_threshold: 1000
+      img_point_cov: 100
+      patch_size: 8
+      patch_pyrimid_level: 4
+      normal_en: true
+      raycast_en: false
+      inverse_composition_en: false
+      exposure_estimate_en: true
+      inv_expo_cov: 0.1
+
+    imu:
+      imu_en: true
+      imu_int_frame: 30
+      acc_cov: 0.5
+      gyr_cov: 0.3
+      b_acc_cov: 0.0001
+      b_gyr_cov: 0.0001
+
+    lio:
+      max_iterations: 5
+      dept_err: 0.02
+      beam_err: 0.05
+      min_eigen_value: 0.0025
+      voxel_size: 0.5
+      max_layer: 2
+      max_points_num: 50
+      layer_init_num: [5, 5, 5, 5, 5]
+
+    local_map:
+      map_sliding_en: false
+      half_map_size: 100
+      sliding_thresh: 8.0
+
+    uav:
+      imu_rate_odom: false
+      gravity_align_en: true # imu frame (mid360s_link) is pitched +10deg vs body -> level the map
+
+    publish:
+      dense_map_en: true
+      pub_effect_point_en: false
+      pub_plane_en: false
+      pub_scan_num: 1
+      blind_rgb_points: 0.0
+
+    evo:
+      seq_name: "sim_x500_plus"
+      pose_output_en: false
+
+    pcd_save:
+      pcd_save_en: false
+      type: 0
+      colmap_output_en: false
+      filter_size_pcd: 0.15
+      interval: -1
+
+    image_save:
+      img_save_en: false
+      interval: 1
+
