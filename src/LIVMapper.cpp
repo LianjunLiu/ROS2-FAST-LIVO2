@@ -283,6 +283,7 @@ void LIVMapper::initializeSubscribersAndPublishers(rclcpp::Node::SharedPtr &node
   sub_img = this->node->create_subscription<sensor_msgs::msg::Image>(img_topic, 200000, std::bind(&LIVMapper::img_cbk, this, std::placeholders::_1));
   
   pubLaserCloudFullRes = this->node->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_registered", 100);
+  pubPlanningCloud = this->node->create_publisher<sensor_msgs::msg::PointCloud2>("/planning_cloud", 5);
   pubNormal = this->node->create_publisher<visualization_msgs::msg::MarkerArray>("/visualization_marker", 100);
   pubSubVisualMap = this->node->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_visual_sub_map_before", 100);
   pubLaserCloudEffect = this->node->create_publisher<sensor_msgs::msg::PointCloud2>("/cloud_effected", 100);
@@ -527,9 +528,17 @@ void LIVMapper::handleLIO()
   }
   *pcl_w_wait_pub = *laserCloudWorld;
 
+  // Geometry for planning must include the full LiDAR scan, not just points visible in the RGB camera. Publish once per corrected LIO update.
+  sensor_msgs::msg::PointCloud2 planning_cloud;
+  pcl::toROSMsg(*laserCloudWorld, planning_cloud);
+  planning_cloud.header.frame_id = "camera_init";
+  planning_cloud.header.stamp = rclcpp::Time(static_cast<int64_t>(LidarMeasures.last_lio_update_time * 1e9));
+  pubPlanningCloud->publish(planning_cloud);
+
   publish_frame_world(pubLaserCloudFullRes, vio_manager);
   if (pub_effect_point_en) publish_effect_world(pubLaserCloudEffect, voxelmap_manager->ptpl_list_);
   if (voxelmap_manager->config_setting_.is_pub_plane_map_) voxelmap_manager->pubVoxelMap();
+  if (frame_num % 5 == 0) voxelmap_manager->pubLaserCloudMap(pubLaserCloudMap);  // global LiDAR map for RViz (~2 Hz)
   publish_path(pubPath);
   publish_mavros(mavros_pose_publisher);
 
@@ -889,7 +898,8 @@ void LIVMapper::imu_cbk(const sensor_msgs::msg::Imu::ConstSharedPtr &msg_in)
 
   if (last_timestamp_imu > 0.0 && timestamp > last_timestamp_imu + 0.2)
   {
-    RCLCPP_WARN(this->node->get_logger(), "imu time stamp Jumps %0.4lf seconds \n", timestamp - last_timestamp_imu);
+    RCLCPP_WARN_THROTTLE(this->node->get_logger(), *this->node->get_clock(), 2000, "imu time stamp Jumps %0.4lf seconds \n", timestamp - last_timestamp_imu);
+    last_timestamp_imu = timestamp; // resync on the drop path, otherwise one gap latches forever
     mtx_buffer.unlock();
     sig_buffer.notify_all();
     return;
