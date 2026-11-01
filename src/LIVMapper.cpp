@@ -116,6 +116,23 @@ void LIVMapper::readParameters(rclcpp::Node::SharedPtr &node)
   this->node->declare_parameter<bool>("publish.pub_effect_point_en", false);
   this->node->declare_parameter<bool>("publish.dense_map_en", false);
 
+  // Camera intrinsics (D455F color, 848x480). Declared locally so vikit's
+  // getRemoteParam() hits the local node and never needs the cross-node
+  // SyncParametersClient (its 100ms service wait races on Jetson). Values
+  // mirror config/camera_d455f.yaml; keep them in sync if intrinsics change.
+  this->node->declare_parameter<std::string>("cam_model", "Pinhole");
+  this->node->declare_parameter<int>("cam_width", 848);
+  this->node->declare_parameter<int>("cam_height", 480);
+  this->node->declare_parameter<double>("scale", 1.0);
+  this->node->declare_parameter<double>("cam_fx", 426.799072265625);
+  this->node->declare_parameter<double>("cam_fy", 426.08453369140625);
+  this->node->declare_parameter<double>("cam_cx", 428.6304626464844);
+  this->node->declare_parameter<double>("cam_cy", 247.6750946044922);
+  this->node->declare_parameter<double>("cam_d0", -0.0554705411195755);
+  this->node->declare_parameter<double>("cam_d1", 0.06080550700426102);
+  this->node->declare_parameter<double>("cam_d2", -0.000496378168463707);
+  this->node->declare_parameter<double>("cam_d3", 0.0004438387986738235);
+
   // get parameter
   this->node->get_parameter("common.lid_topic", lid_topic);
   this->node->get_parameter("common.imu_topic", imu_topic);
