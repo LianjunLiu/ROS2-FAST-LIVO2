@@ -20,7 +20,9 @@ which is included as part of this source code package.
 #include <mutex>
 #include <omp.h>
 #include <pcl/common/io.h>
+#include <pcl/point_cloud.h>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
@@ -242,11 +244,16 @@ public:
 
   void pubVoxelMap();
 
+  // Publish the accumulated LiDAR voxel map as a point cloud (RViz visualization only).
+  void pubLaserCloudMap(const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr &pub);
+
   void mapSliding();
   void clearMemOutOfMap(const int& x_max,const int& x_min,const int& y_max,const int& y_min,const int& z_max,const int& z_min );
 
 private:
   void GetUpdatePlane(const VoxelOctoTree *current_octo, const int pub_max_voxel_layer, std::vector<VoxelPlane> &plane_list);
+
+  void collectOctoTreePoints(const VoxelOctoTree *octo, pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud);
 
   void pubSinglePlane(visualization_msgs::msg::MarkerArray &plane_pub, const std::string plane_ns, const VoxelPlane &single_plane, const float alpha,
                       const Eigen::Vector3d rgb);

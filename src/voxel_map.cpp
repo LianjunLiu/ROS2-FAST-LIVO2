@@ -11,6 +11,7 @@ which is included as part of this source code package.
 */
 
 #include "voxel_map.h"
+#include <pcl_conversions/pcl_conversions.h>
 using namespace Eigen;
 void calcBodyCov(Eigen::Vector3d &pb, const float range_inc, const float degree_inc, Eigen::Matrix3d &cov)
 {
@@ -831,6 +832,63 @@ void VoxelMapManager::pubVoxelMap()
   }
   voxel_map_pub_->publish(voxel_plane);
   loop.sleep();
+}
+
+void VoxelMapManager::pubLaserCloudMap(const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr &pub)
+{
+  if (pub == nullptr) return;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr map_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+  for (auto iter = voxel_map_.begin(); iter != voxel_map_.end(); iter++)
+  {
+    collectOctoTreePoints(iter->second, map_cloud);
+  }
+  sensor_msgs::msg::PointCloud2 map_msg;
+  pcl::toROSMsg(*map_cloud, map_msg);
+  map_msg.header.frame_id = "camera_init";
+  map_msg.header.stamp = rclcpp::Time();
+  pub->publish(map_msg);
+}
+
+void VoxelMapManager::collectOctoTreePoints(const VoxelOctoTree *octo, pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud)
+{
+  if (octo == nullptr) return;
+  if (!octo->temp_points_.empty())
+  {
+    for (const auto &pv : octo->temp_points_)
+    {
+      pcl::PointXYZ pt;
+      pt.x = pv.point_w[0];
+      pt.y = pv.point_w[1];
+      pt.z = pv.point_w[2];
+      cloud->push_back(pt);
+    }
+  }
+  else if (octo->plane_ptr_ != nullptr && octo->plane_ptr_->is_plane_)
+  {
+    // Plane voxel whose raw points were cleared after reaching max_points_num_;
+    // re-sample the fitted plane so walls/floor/ceiling stay visible in the map.
+    const VoxelPlane *pl = octo->plane_ptr_;
+    const float r = (pl->radius_ > 0.05f) ? pl->radius_ : octo->quater_length_;
+    const int n = 5;
+    for (int i = 0; i < n; i++)
+    {
+      for (int j = 0; j < n; j++)
+      {
+        const float u = (2.0f * i / (n - 1) - 1.0f) * r;
+        const float v = (2.0f * j / (n - 1) - 1.0f) * r;
+        const Eigen::Vector3d p = pl->center_ + u * pl->x_normal_ + v * pl->y_normal_;
+        pcl::PointXYZ pt;
+        pt.x = p[0];
+        pt.y = p[1];
+        pt.z = p[2];
+        cloud->push_back(pt);
+      }
+    }
+  }
+  for (int i = 0; i < 8; i++)
+  {
+    if (octo->leaves_[i] != nullptr) collectOctoTreePoints(octo->leaves_[i], cloud);
+  }
 }
 
 void VoxelMapManager::GetUpdatePlane(const VoxelOctoTree *current_octo, const int pub_max_voxel_layer, std::vector<VoxelPlane> &plane_list)
