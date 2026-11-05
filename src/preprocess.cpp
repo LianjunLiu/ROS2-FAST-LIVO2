@@ -15,7 +15,7 @@ which is included as part of this source code package.
 #define RETURN0 0x00
 #define RETURN0AND1 0x10
 
-Preprocess::Preprocess() : feature_enabled(0), lidar_type(AVIA), blind(0.01), point_filter_num(1)
+Preprocess::Preprocess() : feature_enabled(0), lidar_type(AVIA), blind(0.01), blind_sqr(0.0001), point_filter_num(1)
 {
   inf_bound = 10;
   N_SCANS = 6;
@@ -171,6 +171,12 @@ void Preprocess::avia_handler(const livox_ros_driver2::msg::CustomMsg::SharedPtr
     {
       if ((msg->points[i].line < N_SCANS)) // && ((msg->points[i].tag & 0x30) == 0x10))
       {
+        // Livox fills no-return points (sky / out of range) with (0,0,0); MID360 emits ~29% of
+        // them per frame. Drop explicitly so they never pile up at the sensor origin in the map
+        // or the /planning_cloud fed to ego_planner (looks like "start inside obstacle").
+        if (msg->points[i].x == 0.0f && msg->points[i].y == 0.0f && msg->points[i].z == 0.0f)
+          continue;
+
         valid_num++;
 
         pl_full[i].x = msg->points[i].x;
