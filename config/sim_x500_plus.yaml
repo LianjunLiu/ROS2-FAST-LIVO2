@@ -1,0 +1,92 @@
+/**:
+  ros__parameters:
+    common:                        # 订阅话题与传感器开关
+      img_topic: "/realsensed455f/color/image_raw"   # 彩色相机图像
+      lid_topic: "/mid360s/points/points"            # 雷达点云
+      imu_topic: "/mid360s/imu"                      # IMU（MID360S 内置）
+      img_en: 0                                      # 1=启用视觉融合(VIO)
+      lidar_en: 1                                    # 1=启用激光(LIO)
+      ros_driver_bug_fix: false                      # 修复驱动整秒时间跳变，SITL 无需
+
+    extrin_calib:                  # 传感器外参
+      extrinsic_T: [0.0, 0.0, 0.0]                   # IMU→LiDAR 平移（内置 IMU 与雷达共原点 → 0）
+      extrinsic_R: [1.0, 0.0, 0.0,                   # IMU→LiDAR 旋转（单位阵）
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0]
+      Pcl: [0.0, -0.04678, -0.18087]                 # LiDAR→相机 平移 [m]
+      Rcl: [      0.0, -1.0,       0.0,              # LiDAR→相机 旋转
+            -0.087156,  0.0, -0.996195,
+             0.996195,  0.0, -0.087156]
+
+    time_offset:                   # 传感器时间同步偏移
+      imu_time_offset: 0.0                           # IMU 相对雷达的时间偏移 [s]
+      img_time_offset: 0.0                           # 相机相对雷达的时间偏移 [s]
+      exposure_time_init: 0.0                        # 初始曝光时间 [s]
+
+    preprocess:                    # 点云预处理
+      point_filter_num: 2                            # 抽稀：每隔 N 点取 1（2 = 保留一半）
+      filter_size_surf: 0.5                          # 面特征体素下采样尺寸 [m]
+      lidar_type: 8                                  # MID360S (sensor_msgs/PointCloud2: x/y/z/intensity/ring)
+      scan_line: 40                                  # 激光线束数（MID360S = 40 线）
+      blind: 0.8                                     # 近距盲区：丢弃距离 < 此值 [m] 的点
+
+    imu:                           # IMU 模型
+      imu_en: true                                   # 启用 IMU
+      imu_int_frame: 30                              # 初始化所需 IMU 帧数（偏置/重力）
+      acc_cov: 0.5                                   # 加速度计噪声协方差
+      gyr_cov: 0.3                                   # 陀螺仪噪声协方差
+      b_acc_cov: 0.0001                              # 加速度计偏置随机游走协方差
+      b_gyr_cov: 0.0001                              # 陀螺仪偏置随机游走协方差
+
+    lio:                           # LiDAR 里程计(LIO)
+      max_iterations: 5                              # IESKF 迭代次数
+      dept_err: 0.02                                 # 深度误差阈值 [m]
+      beam_err: 0.05                                 # 光束误差阈值 [m]
+      min_eigen_value: 0.0025                        # 退化检测最小特征值
+      voxel_size: 0.5                                # 体素地图尺寸 [m]
+      max_layer: 2                                   # 体素金字塔层数
+      max_points_num: 50                             # 每个体素最大点数
+      layer_init_num: [5, 5, 5, 5, 5]                # 每层初始体素数
+
+    vio:                           # 视觉惯性里程计(VIO)
+      max_iterations: 5                              # 光度误差迭代次数
+      outlier_threshold: 1000                        # 光度残差异常阈值
+      img_point_cov: 100                             # 图像点协方差
+      patch_size: 8                                  # 光度 patch 尺寸
+      patch_pyrimid_level: 4                         # 图像金字塔层数
+      normal_en: true                                # 使用法向量先验
+      raycast_en: false                              # 光线投射重投影
+      inverse_composition_en: false                  # 逆合成对齐
+      exposure_estimate_en: true                     # 在线估计曝光时间
+      inv_expo_cov: 0.1                              # 曝光时间逆协方差
+
+    local_map:                     # 局部地图
+      map_sliding_en: false                          # 滑动窗口地图（false = 全量地图）
+      half_map_size: 100                             # 地图半边长 [m]
+      sliding_thresh: 8.0                            # 触发滑动的距离阈值 [m]
+
+    uav:                           # 无人机相关
+      imu_rate_odom: false                           # 以 IMU 频率发布里程计
+      gravity_align_en: true                         # 启动时把世界系对齐重力（z 朝上）
+
+    publish:                       # 发布开关
+      dense_map_en: true                             # 发布稠密地图
+      pub_effect_point_en: false                     # 发布有效特征点
+      pub_plane_en: false                            # 发布平面
+      pub_scan_num: 1                                # 每隔 N 帧发布一次
+      blind_rgb_points: 0.0                          # RGB 点云近距裁剪 [m]（0 = 不裁）
+
+    evo:                           # 评估输出
+      seq_name: "sim_x500_plus"                      # 序列名（evo 评测用）
+      pose_output_en: false                          # 输出位姿（供 evo 评测）
+
+    pcd_save:                      # 点云保存
+      pcd_save_en: false                             # 保存点云到 pcd
+      type: 0                                        # 保存类型
+      colmap_output_en: false                        # COLMAP 格式输出
+      filter_size_pcd: 0.15                          # 保存时体素下采样尺寸 [m]
+      interval: -1                                   # 保存间隔（-1 = 不自动保存）
+
+    image_save:                    # 图像保存
+      img_save_en: false                             # 保存图像
+      interval: 1                                    # 保存间隔
