@@ -170,6 +170,10 @@ void LIVMapper::readParameters(rclcpp::Node::SharedPtr &node)
   this->node->get_parameter("imu.ba_bg_est_en", ba_bg_est_en);
 
   this->node->get_parameter("preprocess.blind", p_pre->blind);
+  // blind alone is inert: every range filter in Preprocess compares against blind_sqr,
+  // which set() would compute but is never called (params are assigned directly below),
+  // so it stayed uninitialized (~0) and filtered nothing. Derive it here.
+  p_pre->blind_sqr = p_pre->blind * p_pre->blind;
   this->node->get_parameter("preprocess.filter_size_surf", filter_size_surf_min);
   this->node->get_parameter("preprocess.lidar_type", p_pre->lidar_type);
   this->node->get_parameter("preprocess.scan_line", p_pre->N_SCANS);
