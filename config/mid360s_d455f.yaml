@@ -1,0 +1,109 @@
+/**:
+  ros__parameters:
+    # ================================================================
+    # FAST-LIVO2 配置 — Livox MID360S + Intel RealSense D455F
+    # ----------------------------------------------------------------
+    # 坐标系约定：
+    #   extrinsic_T/R : IMU -> LiDAR   外参
+    #   Rcl / Pcl     : LiDAR -> Camera 外参
+    # 调试路线：img_en:0 -> 标定 Rcl/Pcl + img_time_offset -> img_en:1
+    # ================================================================
+
+    common:
+      img_topic: "/camera/color/image_raw"   # 相机图像话题（D455F 彩色流）
+      lid_topic: "/livox/lidar"              # 雷达点云话题（CustomMsg）
+      imu_topic: "/livox/imu"                # IMU 话题（MID360 内置 IMU）
+      img_en: 0                              # 视觉开关（1=启用视觉，0=纯 LIO）
+      lidar_en: 1                            # 雷达开关（1=启用雷达）
+      ros_driver_bug_fix: false              # 时间戳对齐修复：livox 驱动 IMU/LiDAR 时间戳 出现整秒跳变时置 true，会把 IMU 时间戳 round 到雷达帧
+
+    extrin_calib:
+      # --- IMU -> LiDAR 外参 ---
+      extrinsic_T: [0.0, 0.0, 0.0]           # 平移 [x,y,z] 米
+      extrinsic_R: [1.0, 0.0, 0.0,           # 旋转矩阵 3x3（行优先）
+                    0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0]
+      # --- LiDAR -> Camera 外参 ---
+      # Pcl: [0.0, 0.0, 0.0]                   # Pcl: 平移 [x,y,z] 米 TODO
+      # Rcl: [1.0, 0.0, 0.0,                   # Rcl: 旋转矩阵 3x3（行优先） TODO
+      #       0.0, 1.0, 0.0,
+      #       0.0, 0.0, 1.0]
+      Pcl: [  0.006417,  -0.099208,  -0.082262]
+      Rcl: [ -0.008950,  -0.999933,  -0.007385,
+              0.214347,   0.005295,  -0.976743,
+              0.976717,  -0.010325,   0.214285]
+
+    time_offset:
+      imu_time_offset: 0.0                   # IMU 相对雷达的时间偏移（秒）
+      img_time_offset: 0.0                   # 相机相对雷达的时间偏移（秒）
+      exposure_time_init: 0.0                # 曝光时间初始值（秒），配合曝光估计使用
+
+    imu:
+      imu_en: true                           # IMU 开关
+      imu_int_frame: 30                      # 两帧激光之间 IMU 积分步数（传播/预积分帧数）
+      acc_cov: 0.5                           # 加速度计噪声协方差，越大越不信任加速度计
+      gyr_cov: 0.1                           # 陀螺仪噪声协方差，越大越不信任陀螺仪
+      b_acc_cov: 0.0001                      # [死参数] 加速度计偏置协方差；代码硬编码 0.0001，不读此值
+      b_gyr_cov: 0.0001                      # [死参数] 陀螺仪偏置协方差；代码硬编码 0.0001，不读此值
+
+    preprocess:
+      point_filter_num: 1                    # 点云降采样间隔：每 N 个点取 1 个；1=保留全部
+      filter_size_surf: 0.1                  # 表面点体素下采样叶子尺寸（米），越小保留越多
+      lidar_type: 1                          # 雷达类型：1 = AVIA 通道。MID360 无专属类型，借道 AVIA 订阅 livox CustomMsg
+      scan_line: 6                           # 扫描线数 N_SCANS；MID360 实际 4 线，设 6 保证 line<6 不丢点
+      blind: 0.2                             # 最小探测距离（米），近于该距离的点被丢弃 MID360 最小 0.1m
+
+    lio:
+      # 注意：代码读取的键是 min_iterations（voxel_map.cpp），官方 yaml 里的 max_iterations 是死键（移植版遗留 bug），不要改回去
+      min_iterations: 5                      # LIO ICP 迭代次数（代码存为 voxel_config.max_iterations_）
+      dept_err: 0.02                         # 深度误差（米），用于构造点到平面协方差
+      beam_err: 0.05                         # 光束角度误差（度），构造切向测量噪声
+      min_eigen_value: 0.005                 # 平面判定最小特征值阈值，决定体素是否视作平面
+      voxel_size: 0.5                        # 体素地图最大体素尺寸（米）；官方值 0.5（测试值，机载可放大到 2.0）
+      sigma_num: 3.0                         # 体素平面判定 sigma 倍数（代码声明 double，必须写小数 3.0）
+      max_layer: 2                           # 八叉树最大层数
+      max_points_num: 50                     # 每个体素最多保留点数
+      layer_init_num: [5, 5, 5, 5, 5]        # 各层初始点数
+
+    vio:
+      max_iterations: 5                      # 视觉光度优化最大迭代次数
+      outlier_threshold: 1000                # 光度误差外点阈值（像素灰度差），超此值判为外点
+      img_point_cov: 1000                    # 图像点观测协方差（像素），越大视觉项权重越低
+      patch_size: 8                          # 光度误差 patch 边长（像素），patch_size x patch_size
+      patch_pyrimid_level: 4                 # 图像金字塔层数，层数越多收敛范围越大
+      normal_en: true                        # 表面法向量约束（用于深度/尺度估计）
+      raycast_en: false                      # 射线投影(raycast)求深度；开则更准但更耗时
+      inverse_composition_en: false          # 逆向合成光流法；开则迭代更快、收敛范围略小
+      exposure_estimate_en: true             # 在线估计相机曝光时间（应对自动曝光亮度跳变）
+      inv_expo_cov: 0.1                      # 曝光时间估计的逆协方差，越小越信任曝光估计
+    
+    local_map:
+      map_sliding_en: false                  # 局部地图滑窗开关；长航时开 true 省内存
+      half_map_size: 100                     # 局部地图半边长（米）
+      sliding_thresh: 8.0                    # 滑窗触发阈值（米），移动超过该距离触发滑窗
+
+    uav:
+      imu_rate_odom: false                   # 以 IMU 频率发布里程计（给 PX4 高频 odom 时开 true）
+      gravity_align_en: true                 # 重力对齐：起飞前静止，把世界 z 轴对齐重力方向，自动补偿 IMU/雷达安装倾角（只对齐 roll/pitch）
+
+    publish:
+      dense_map_en: false                    # 稠密地图发布开关；Jetson 上先关，跑通后再开
+      pub_effect_point_en: false             # 发布 LIO 配准用的有效点到平面点
+      pub_plane_en: false                    # 发布体素平面地图
+      pub_scan_num: 1                        # 点云发布抽帧间隔：每 N 帧发布一次
+      blind_rgb_points: 0.0                  # 发布 RGB 点云时忽略的最小距离（米）
+
+    evo:
+      seq_name: "mid360s_d455f"              # 序列名（用于输出/评测文件命名）
+      pose_output_en: true                   # 位姿输出：每帧写 Log/result/<seq_name>.txt（TUM 格式）
+
+    pcd_save:
+      pcd_save_en: false                     # 是否保存点云 pcd
+      type: 0                                # 保存坐标系：0=世界系，1=机体系
+      colmap_output_en: false                # 是否输出 colmap 格式
+      filter_size_pcd: 0.15                  # 保存 pcd 时的体素滤波尺寸（米）
+      interval: -1                           # 保存间隔（帧），-1 表示不自动保存
+
+    image_save:
+      img_save_en: false                     # 是否保存图像
+      interval: 1                            # 保存间隔（帧）

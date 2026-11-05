@@ -1,2 +1,3 @@
 Log/*
 build/*
+__pycache__/

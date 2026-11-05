@@ -1,0 +1,17 @@
+/**:
+  ros__parameters:
+    cam_model: Pinhole
+    # Intel RealSense D455F color stream, 640x360@15Hz
+    # Source: /camera/color/camera_info (K matrix, plumb_bob d0..d4)
+    # d4 (k3 = -0.0194) is ignored by FAST-LIVO2's PinholeCamera (only d0..d3 used)
+    cam_width: 640
+    cam_height: 360
+    scale: 1.0
+    cam_fx: 322.11248779296875
+    cam_fy: 321.5732116699219
+    cam_cx: 323.49468994140625
+    cam_cy: 185.7925262451172
+    cam_d0: -0.0554705411195755
+    cam_d1: 0.06080550700426102
+    cam_d2: -0.000496378168463707
+    cam_d3: 0.0004438387986738235
