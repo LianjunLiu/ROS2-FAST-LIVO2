@@ -48,12 +48,8 @@ def generate_launch_description():
         default_value='True',
         description='Whether to respawn if a node crashes. Applied when composition is disabled.')
 
-    # 覆盖 yaml 里的 imu_topic，默认与 yaml 一致。实车改用飞控 IMU 时传
-    # imu_topic:=/fcu/imu（由 x500_plus 的 fcu_imu_to_livox 节点发布）。
-    imu_topic_arg = DeclareLaunchArgument(
-        'imu_topic',
-        default_value='/livox/imu',
-        description='IMU topic override (e.g. /fcu/imu to use the flight controller IMU)')
+    # 覆盖 yaml 里的 imu_topic，默认与 yaml 一致。实车改用飞控 IMU 时传 imu_topic:=/fcu/imu（由 x500_plus 的 fcu_imu_to_livox 节点发布）。
+    imu_topic_arg = DeclareLaunchArgument('imu_topic', default_value='/livox/imu', description='IMU topic override (e.g. /fcu/imu to use the flight controller IMU)')
 
     lidar_params_file = LaunchConfiguration('lidar_params_file')
     camera_params_file = LaunchConfiguration('camera_params_file')
