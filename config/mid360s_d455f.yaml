@@ -16,6 +16,7 @@
       img_en: 0                              # 视觉开关（1=启用视觉，0=纯 LIO）
       lidar_en: 1                            # 雷达开关（1=启用雷达）
       ros_driver_bug_fix: false              # 时间戳对齐修复：livox 驱动 IMU/LiDAR 时间戳 出现整秒跳变时置 true，会把 IMU 时间戳 round 到雷达帧
+      verbose: false                         # 每帧打印计时表/特征数/预处理点数（约 200 行/s）仅调试用；实飞保持 false
 
     extrin_calib:
       # --- IMU -> LiDAR 外参 ---
