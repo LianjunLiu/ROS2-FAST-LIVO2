@@ -13,6 +13,8 @@ which is included as part of this source code package.
 #include "voxel_map.h"
 #include <pcl_conversions/pcl_conversions.h>
 using namespace Eigen;
+
+extern bool g_verbose;  // common.verbose：每帧调试打印开关（定义在 LIVMapper.cpp）
 void calcBodyCov(Eigen::Vector3d &pb, const float range_inc, const float degree_inc, Eigen::Matrix3d &cov)
 {
   if (pb[2] == 0) pb[2] = 0.0001;
@@ -418,8 +420,7 @@ void VoxelMapManager::StateEstimation(StatesGroup &state_propagat)
       total_residual += fabs(ptpl_list_[i].dis_to_plane_);
     }
     effct_feat_num_ = ptpl_list_.size();
-    cout << "[ LIO ] Raw feature num: " << feats_undistort_->size() << ", downsampled feature num:" << feats_down_size_ 
-         << " effective feature num: " << effct_feat_num_ << " average residual: " << total_residual / effct_feat_num_ << endl;
+    if (g_verbose) cout << "[ LIO ] Raw feature num: " << feats_undistort_->size() << ", downsampled feature num:" << feats_down_size_ << " effective feature num: " << effct_feat_num_ << " average residual: " << total_residual / effct_feat_num_ << endl;
 
     /*** Computation of Measuremnt Jacobian matrix H and measurents covarience
      * ***/
